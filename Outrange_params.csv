@@ -1,0 +1,5 @@
+outr_param_name,ref_CDOM_thrsh,ref_dfo_max,ref_stn_min,outr_refprof_dRho,outr_refprof_filtW,outr_refprof_Kstd,outr_refprof_Zwindow,outr_threshold,prof_comp_method
+DO,85,7,3,0.02,3,1.5,10,-10,percent
+pH,85,8,3,0.02,3,1.5,10,-0.2,absolute
+Transm,85,8,3,0.02,3,1.5,45,0.05,ttest
+CHL,85,7,3,0.02,3,1.5,10,0,absolute
