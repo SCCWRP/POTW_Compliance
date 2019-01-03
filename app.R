@@ -3,7 +3,7 @@
 #         Last change: Instead of tab "Transmissivity" tab "t-test" with a choice of four "Outrange" parameters
 #
 library( PBSmapping )
-if (packageVersion('DT') < '0.1.3') devtools::install_github('rstudio/DT')
+#if (packageVersion('DT') < '0.1.3') devtools::install_github('rstudio/DT')
 library( DT )
 library( oce )
 library( pracma )
