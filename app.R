@@ -16,7 +16,7 @@ library(leaflet)
 
 library(sf)  # Changed by Marcus
 
-source( "POTW_compliance_functions.R")
+source( "R/POTW_compliance_functions.R")
 #
 # Read geographic coordinates of the stations from the file "Stn_coords.csv", 
 #     located in the subdirectory "data",
