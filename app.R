@@ -77,6 +77,7 @@ ui <- fluidPage( useShinyjs(),
                    ),
                    tabPanel( h5( strong( "Data" ) ),
                              fluidRow( 
+                               column( width = 8,  uiOutput( "upload_data_file_UI" )),
                                column( width = 8,  uiOutput( "select_data_file_UI" ) ),
                                column( width = 4, br(), br(),
                                        fluidRow( actionButton( "read_data_file_AB", h5( strong( "  Read data file " ) ) ) )
@@ -287,6 +288,9 @@ server <- function( input, output ) {
                        V.diff.list = NULL,
                        V.Z.min = NULL
   )
+  
+  # data files list, reactive
+  data_files <- observeEvent
   #
   # Selected values -------------------------------------------------------
   output$summary_text <- renderText({
@@ -423,12 +427,24 @@ server <- function( input, output ) {
     }
   })
   #
+  # Data upload functions -------------------------------------------------
+  #
+  output$upload_data_file_UI <- renderUI({
+    fileInput("file_input", "Upload your own csv file (will appear in list below)",
+              multiple = FALSE,
+              accept = c("text/csv",
+                         "text/comma-separated-values,text/plain",
+                         ".csv"),  width = "100%")
+    
+  })
+
+  #
   # Data select functions -------------------------------------------------
   #
   output$select_data_file_UI <- renderUI({  
     selectInput( "select_data_file", 
                  label = h5(strong( "Select data file" )), 
-                 choices = data_files.list, width = "100%" )
+                 choices = c(data_files.list, input$file_input$name), width = "100%" )
   })
   #
   observeEvent( input$read_data_file_AB, {
@@ -452,11 +468,22 @@ server <- function( input, output ) {
     v$RefProf <- NULL
     v$V.diff.list <- NULL
     v$V.Z.min <- NULL
-    #
-    v$selected.data.file <- input$select_data_file
-    v$Surv.data.tot <<- read.csv(
-      file.path( getwd(), "data", input$select_data_file ),
-      header = TRUE, stringsAsFactors = FALSE, fileEncoding="latin1" )
+    # use uploaded file if found, otherwise use database file
+    if(!is.null(input$file_input$name)){
+      if(input$select_data_file == input$file_input$name){
+        nm <- input$file_input$name
+        pth <- input$file_input$datapath
+      } else {
+        nm <- input$select_data_file
+        pth <- file.path( getwd(), "data", input$select_data_file )
+      }
+    } else {
+      nm <- input$select_data_file
+      pth <- file.path( getwd(), "data", input$select_data_file )
+    }
+    
+    v$selected.data.file <- nm
+    v$Surv.data.tot <<- read.csv(pth, header = TRUE, stringsAsFactors = FALSE, fileEncoding="latin1" )
     #
     param.list <- c( "Agency","Date","Season" )
     param.sel <- calc.param.sel( param.list, Param.names, colnames( v$Surv.data.tot ) )
