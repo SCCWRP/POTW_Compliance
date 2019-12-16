@@ -1,0 +1,2 @@
+Season,Agency,Date,Time,Station,Field Rep,Depth [m],Time [s],Descent rate [m/s],Temperature [°C],Conductivity [S/m],Salinity [psu],Density (å-theta),pH,Oxygen [mg/L],SBE DO sat [mg/L],SBE DO sat [%],Transmissivity [%],SBE Beam C [1/m],Chl-a [ug/L],Voltage-Chl-a [V],CDOM [ug/L],Voltage-CDOM [V],Ammonia-N [mg/L],Total Colif. [MPN/100mL],E. coli [MPN/100mL],Enterococci [MPN/100mL]
+Winter,Hyperion,3/12/19,12:25:00,4001,1,1,106.2,0.61,15.34,4.119,33.228,24.554,8.24,8.9,8.18,108.73,77.9,0.999,0.9,0.2595,0.47,0.133,NaN,NaN,NaN,NaN
