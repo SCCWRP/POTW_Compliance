@@ -8,10 +8,12 @@ library( DT )
 library( oce )
 library( pracma )
 library( plyr )
+library( dplyr )
 library( signal )
 library( stats )
 library( shinyjs )
-library(leaflet)
+library( leaflet )
+
 #library(sp)
 
 library(sf)  # Changed by Marcus
@@ -993,6 +995,7 @@ server <- function( input, output ) {
   #
   observeEvent( input$ref_settings_edit_AB, {
     indx_ref_setting <- input$ref_settings_DT_rows_selected
+    
     if( length ( indx_ref_setting ) > 0 ) {
       output$ref_setting_edit_UI <- renderUI({
         textInput( "ref_settings_edit_TI", 
@@ -1001,8 +1004,11 @@ server <- function( input, output ) {
       })
       shinyjs::show( "ref_settings_accept_AB" )
       shinyjs::show( "ref_settings_cancel_AB" )
+      
+      v$settings$Ref <- v$settings$Ref %>% mutate(update = seq(1,nrow(v$settings$Ref)) == indx_ref_setting )
+      
       output$ref_settings_DT <- DT::renderDataTable(
-        v$settings$Ref,
+        v$settings$Ref %>% select(-update),
         rownames = FALSE, 
         selection = list( mode = "none" ), 
         options = list(dom = 't'),
@@ -1013,12 +1019,20 @@ server <- function( input, output ) {
   observeEvent( input$ref_settings_accept_AB, {
     indx_ref_setting <- input$ref_settings_DT_rows_selected
     value <- as.numeric( input$ref_settings_edit_TI )
-    if( is.finite( value ) ) {
-      v$settings$Ref$Value[ indx_ref_setting ] <- value
+    # if( is.finite( value ) ) {
+    #   v$settings$Ref$Value[ indx_ref_setting ] <- value
+    # }
+    
+    if ('update' %in% names(v$settings$Ref)) {
+      v$settings$Ref <- v$settings$Ref %>%
+        mutate(Value = ifelse(update, value, Value)) %>% 
+        select(-update)
     }
     output$ref_setting_edit_UI <- renderUI({NULL})
     shinyjs::hide( "ref_settings_accept_AB" )
     shinyjs::hide( "ref_settings_cancel_AB" )
+
+    
     output$ref_settings_DT <- DT::renderDataTable(
       v$settings$Ref,
       rownames = FALSE, 
