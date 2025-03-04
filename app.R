@@ -877,8 +877,11 @@ server <- function( input, output ) {
       })
       shinyjs::show( "plume_settings_accept_AB" )
       shinyjs::show( "plume_settings_cancel_AB" )
+      
+      v$settings$Plume <- v$settings$Plume %>% mutate(update = seq(1, nrow(v$settings$Plume)) == indx_plume_setting )
+      
       output$plume_settings_DT <- DT::renderDataTable(
-        v$settings$Plume,
+        v$settings$Plume %>% select(-update),
         rownames = FALSE,
         options = list( dom = 't'),
         server = FALSE,
@@ -890,9 +893,16 @@ server <- function( input, output ) {
   observeEvent( input$plume_settings_accept_AB, {
     indx_plume_setting <- input$plume_settings_DT_rows_selected
     value <- as.numeric( input$plume_settings_edit_TI )
-    if( is.finite( value ) ) {
-      v$settings$Plume$Value[ indx_plume_setting ] <- value
+    #if( is.finite( value ) ) {
+      #v$settings$Plume$Value[ indx_plume_setting ] <- value
+    #}
+    
+    if ('update' %in% names(v$settings$Plume)) {
+      v$settings$Plume <- v$settings$Plume %>%
+        mutate(Value = ifelse(update, value, Value)) %>% 
+        select(-update)
     }
+    
     output$plume_setting_edit_UI <- renderUI({NULL})
     shinyjs::hide( "plume_settings_accept_AB" )
     shinyjs::hide( "plume_settings_cancel_AB" )
@@ -1106,8 +1116,11 @@ server <- function( input, output ) {
       })
       shinyjs::show( "outr_settings_accept_AB" )
       shinyjs::show( "outr_settings_cancel_AB" )
+      
+      v$settings$Outr <- v$settings$Outr %>% mutate(update = seq(1, nrow(v$settings$Outr)) == indx_outr_setting )
+      
       output$outr_settings_DT <- DT::renderDataTable(
-        v$settings$Outr,
+        v$settings$Outr %>% select(-update),
         rownames = FALSE, 
         selection = list( mode = "none" ), 
         options = list(dom = 't'),
@@ -1123,6 +1136,13 @@ server <- function( input, output ) {
     if( is.finite( value ) ) {
       v$settings$Outr$Value[ indx_outr_setting ] <- value
     }
+    
+    if ('update' %in% names(v$settings$Outr)) {
+      v$settings$Outr <- v$settings$Outr %>% mutate(
+        Value = ifelse(update, value, Value)
+      )
+    }
+    
     output$outr_setting_edit_UI <- renderUI({NULL})
     shinyjs::hide( "outr_settings_accept_AB" )
     shinyjs::hide( "outr_settings_cancel_AB" )
