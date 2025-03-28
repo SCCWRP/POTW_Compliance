@@ -226,7 +226,13 @@ ui <- fluidPage( useShinyjs(),
                                            column( width = 5, plotOutput( "outr_prof_Z" ) ),
                                            column( width = 5, plotOutput( "outr_prof_Sigma" ) )
                                          )
-                                       )                
+                                       ),
+                                       fluidRow(
+                                         column( width = 12, 
+                                                 br(),
+                                                 strong(textOutput("v_z_min_message"))  # Exclusion message displayed here
+                                         )
+                                       )
                                )
                              ) # fluidRow(
                    ),  # tabPanel( h5( strong( "Outranges" ) )
@@ -439,7 +445,7 @@ server <- function( input, output ) {
                          ".csv"),  width = "100%")
     
   })
-
+  
   #
   # Data select functions -------------------------------------------------
   #
@@ -877,8 +883,11 @@ server <- function( input, output ) {
       })
       shinyjs::show( "plume_settings_accept_AB" )
       shinyjs::show( "plume_settings_cancel_AB" )
+      
+      v$settings$Plume <- v$settings$Plume %>% mutate(update = seq(1, nrow(v$settings$Plume)) == indx_plume_setting )
+      
       output$plume_settings_DT <- DT::renderDataTable(
-        v$settings$Plume,
+        v$settings$Plume %>% select(-update),
         rownames = FALSE,
         options = list( dom = 't'),
         server = FALSE,
@@ -890,9 +899,16 @@ server <- function( input, output ) {
   observeEvent( input$plume_settings_accept_AB, {
     indx_plume_setting <- input$plume_settings_DT_rows_selected
     value <- as.numeric( input$plume_settings_edit_TI )
-    if( is.finite( value ) ) {
-      v$settings$Plume$Value[ indx_plume_setting ] <- value
+    #if( is.finite( value ) ) {
+    #v$settings$Plume$Value[ indx_plume_setting ] <- value
+    #}
+    
+    if ('update' %in% names(v$settings$Plume)) {
+      v$settings$Plume <- v$settings$Plume %>%
+        mutate(Value = ifelse(update, value, Value)) %>% 
+        select(-update)
     }
+    
     output$plume_setting_edit_UI <- renderUI({NULL})
     shinyjs::hide( "plume_settings_accept_AB" )
     shinyjs::hide( "plume_settings_cancel_AB" )
@@ -1031,7 +1047,7 @@ server <- function( input, output ) {
     output$ref_setting_edit_UI <- renderUI({NULL})
     shinyjs::hide( "ref_settings_accept_AB" )
     shinyjs::hide( "ref_settings_cancel_AB" )
-
+    
     
     output$ref_settings_DT <- DT::renderDataTable(
       v$settings$Ref,
@@ -1106,8 +1122,11 @@ server <- function( input, output ) {
       })
       shinyjs::show( "outr_settings_accept_AB" )
       shinyjs::show( "outr_settings_cancel_AB" )
+      
+      v$settings$Outr <- v$settings$Outr %>% mutate(update = seq(1, nrow(v$settings$Outr)) == indx_outr_setting )
+      
       output$outr_settings_DT <- DT::renderDataTable(
-        v$settings$Outr,
+        v$settings$Outr %>% select(-update),
         rownames = FALSE, 
         selection = list( mode = "none" ), 
         options = list(dom = 't'),
@@ -1116,6 +1135,7 @@ server <- function( input, output ) {
     shinyjs::enable( "prof_comp_method_RB" )
     shinyjs::enable( "entr_setting_CbI" )
   })
+  
   # 
   observeEvent( input$outr_settings_accept_AB, {
     indx_outr_setting <- input$outr_settings_DT_rows_selected
@@ -1123,6 +1143,13 @@ server <- function( input, output ) {
     if( is.finite( value ) ) {
       v$settings$Outr$Value[ indx_outr_setting ] <- value
     }
+    
+    if ('update' %in% names(v$settings$Outr)) {
+      v$settings$Outr <- v$settings$Outr %>% mutate(
+        Value = ifelse(update, value, Value)
+      )
+    }
+    
     output$outr_setting_edit_UI <- renderUI({NULL})
     shinyjs::hide( "outr_settings_accept_AB" )
     shinyjs::hide( "outr_settings_cancel_AB" )
@@ -1192,6 +1219,19 @@ server <- function( input, output ) {
       v$Stn.list.surv$Outrange <- FALSE
       v$Stn.list.surv$Outrange[ v$Stn.list.surv$Profile %in% Outr.prof.list ] <- TRUE
       shinyjs::show( "v_z_min_DT" )
+      
+      # Filtering out stations
+      valid_stations <- names(v$V.diff.list)[sapply(names(v$V.diff.list), function(station) {
+        station_data <-v$V.diff.list[[station]]
+        columns_to_check  <- c("V.plume","TdegC.plume", "Z.plume")
+        
+        all_valid <- !all(sapply(columns_to_check, function(col){
+          all(is.na(station_data[[col]])) || all(is.nan(station_data[[col]]))
+        })) 
+        return(all_valid)
+      })]
+      v$V.diff.list <- v$V.diff.list[valid_stations]
+      
     }
   })
   #
@@ -1203,6 +1243,8 @@ server <- function( input, output ) {
     }
   })
   #
+  v$show_exclusion_message <- reactiveVal(FALSE) 
+  v$excluded_stations <- reactiveVal(character(0))
   output$v_z_min_DT <- DT::renderDataTable({ 
     if( !is.null( v$V.Z.min ) ) {
       if( v$settings$Prof.comp$Value == "ttest" ) {
@@ -1216,12 +1258,45 @@ server <- function( input, output ) {
                                   Z = v$V.Z.min[,"Z.min"] )
         colnames( V.Z.min.DT )[2] <- v$Outrange.Param
       }
+      
+      valid_stations <- names(v$V.diff.list)
+      V.Z.min.DT <- V.Z.min.DT[match(valid_stations, V.Z.min.DT$Profile), ]
+      excluded_stations <- setdiff(rownames(v$V.Z.min), valid_stations)
+      print("The other one:")
+      print(excluded_stations)
+      v$excluded_stations(excluded_stations)
+      
       v_z_min_DT <- V.Z.min.DT
     } else {
       matrix( , nrow = 0, ncol = 0 )
     }
   }, server = FALSE, rownames = FALSE, selection = "multiple",
-  options = list(dom = 't') )
+  options = list(dom = 't'))
+  
+  output$v_z_min_message <- renderText({
+    if (v$show_exclusion_message()) {  # Only show the message if TRUE
+      excluded_stations <- v$excluded_stations()  # Access the excluded stations
+      
+      if (length(excluded_stations) > 0) {
+        paste("The following stations were excluded because their critical columns contained only NaN values:", 
+              paste(excluded_stations, collapse = ", "), ".")
+      } else {
+        "No stations were excluded."
+      }
+    } else {
+      # If the message should be hidden, return an empty string
+      ""
+    }
+  })
+  #
+  observeEvent(input$detect_outranges_AB, {
+    # Show the exclusion message when Detect Outranges is clicked
+    v$show_exclusion_message(TRUE)
+  })
+  observeEvent(input$outrange_param_select_AB, {
+    # Hide the exclusion message when Select is clicked
+    v$show_exclusion_message(FALSE)
+  })
   #
   output$outr_prof_Z <- renderPlot({
     if( !is.null( v$V.diff.list ) ) {
@@ -1231,6 +1306,7 @@ server <- function( input, output ) {
                           profile2View, v$settings$Outr )
     }
   })
+  
   #
   output$outr_prof_Sigma <- renderPlot({
     if( !is.null( v$V.diff.list ) ) {
@@ -1240,6 +1316,9 @@ server <- function( input, output ) {
                           profile2View, v$settings$Outr )
     }
   })
+  
+  
+  
   #
   # "Entrainment" functions ---------------------------------------------------
   #
